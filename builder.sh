@@ -42,6 +42,12 @@ for repo_info in "${repos[@]}"; do
   clone_or_update_repo "$repo" "$url"
 done
 
+nRoot=$(pwd)
+nPath=$(pwd)/nekoray
+
+cd "$nPath"
+git am < ../0001-feat-macos.patch
+cd "$nRoot"
 
 # Check and install dependencies if not already installed
 
@@ -59,7 +65,7 @@ check_and_install() {
 }
 
 # Array to store dependencies
-dependencies=("golang" "cmake" "ninja" "curl" "qt@5")
+dependencies=("go" "cmake" "ninja" "curl" "qt@5")
 
 # Check and install dependencies using the function
 for dep in "${dependencies[@]}"; do
@@ -76,9 +82,6 @@ export LDFLAGS="-L$installation_path/lib"
 export CPPFLAGS="-I$installation_path/include"
 export QT_QPA_PLATFORM_PLUGIN_PATH="$installation_path/plugins"
 # export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig"
-
-nRoot=$(pwd)
-nPath=$(pwd)/nekoray
 
 # Clean build directory or create it if it does not exist
 if [ -d "$nPath/build" ]; then
@@ -99,12 +102,12 @@ bash libs/build_deps_all.sh
 
 # Build nekoray using CMake and Ninja
 cd "$nPath/build"
-cmake -GNinja -DCMAKE_PREFIX_PATH=$installation_path -DCMAKE_BUILD_TYPE=Release -DNKR_PACKAGE_MACOS=1 ..
+cmake -GNinja -DCMAKE_PREFIX_PATH=$installation_path -DCMAKE_BUILD_TYPE=Release -DNKR_PACKAGE=1 ..
 ninja
 
 cd "$nPath"
 
-nApp="$nPath/build/nekoray.app"
+nApp="$nPath/build/nekobox.app"
 
 # Deploy frameworks using macdeployqt
 macdeployqt "$nApp" -verbose=3
@@ -126,7 +129,7 @@ cd "$nApp/Contents/MacOS/"
 cd "$nPath"
 
 # Build nekoray for both amd64 and arm64
-for arch in "amd64" "arm64"; do
+for arch in "arm64"; do
   rm -rf "$nPath/build/nekoray_$arch.app"
   cp -r "$nApp" "$nPath/build/nekoray_$arch.app"
 done
@@ -141,13 +144,13 @@ version_standalone="nekoray-"$(cat "$nPath/nekoray_version.txt")
 
 
 # Build nekobox_core and nekoray_core for both amd64 and arm64
-for arch in "amd64" "arm64"; do
+for arch in "arm64"; do
   GOOS="darwin" GOARCH=$arch bash libs/build_go.sh
   cp -a "$nPath/deployment/macos-$arch/." "$nPath/build/nekoray_$arch.app/Contents/MacOS/"
 done
 
 # Zip nekoray by arch
-for arch in "amd64" "arm64"; do
+for arch in "arm64"; do
   TEMP_PATH=$(pwd)
   cd "$nPath/build"
   zip -r "nekoray_$arch.zip" "nekoray_$arch.app"
